@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineSphere | Register</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <style>
+        .auth-container { max-width: 400px; margin: 100px auto; text-align: center; }
+        .auth-form { padding: 30px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #fff; }
+        .auth-btn { width: 100%; padding: 12px; }
+        .error-msg { color: #ff4d4d; margin-bottom: 15px; display: none; }
+        .success-msg { color: #4CAF50; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body>
+    <nav class="navbar glass-card">
+        <div class="container nav-content">
+            <a href="index.html" class="logo"><span class="logo-accent">Cine</span>Sphere</a>
+        </div>
+    </nav>
+    <div class="container auth-container">
+        <div style="text-align: left; margin-bottom: 15px;">
+            <a href="index.html" style="color: #aaa; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: color 0.3s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#aaa'">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+        <div class="auth-form glass-card">
+            <h2>Register</h2>
+            <br>
+            <br>
+            <form id="registerForm">
+                <input type="text" id="name" class="auth-input" placeholder="Full Name" required minlength="3">
+                <input type="email" id="email" class="auth-input" placeholder="Email Address" required>
+                <input type="password" id="password" class="auth-input" placeholder="Password" required minlength="6">
+                <button type="submit" class="btn btn-primary auth-btn" id="submitBtn">Register</button>
+            </form>
+            <p style="margin-top:20px;">Already have an account? <a href="login.html" class="text-primary">Login</a></p>
+        </div>
+    </div>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const btn = document.getElementById('submitBtn');
+            
+            btn.innerHTML = 'Registering...';
+            btn.disabled = true;
+
+            const res = await apiRegister(name, email, password);
+            if(res.error) {
+                UI.showToast(res.message, 'error');
+                btn.innerHTML = 'Register';
+                btn.disabled = false;
+            } else {
+                UI.showToast('Registration successful! Verification link sent to mail.', 'success');
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>

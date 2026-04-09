@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineSphere | My Watchlist</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+    <nav class="navbar glass-card">
+        <div class="container nav-content">
+            <a href="index.html" class="logo"><span class="logo-accent">Cine</span>Sphere</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="watchlist.html" class="active">Watchlist</a></li>
+                <li id="authLink"><a href="login.html">Login</a></li>
+            </ul>
+        </div>
+    </nav>
+    <main class="container" style="padding-top: 100px;">
+        <h2 class="section-title">My Watchlist</h2>
+        <div class="movie-grid" id="watchlistGrid" style="margin-bottom: 50px;">
+            <!-- Watchlist items loaded here -->
+        </div>
+
+
+    </main>
+
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        
+        if (!user) {
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('authLink').innerHTML = `
+                <a href="profile.html"><i class="fas fa-user-circle"></i> Profile</a>
+                <a href="javascript:void(0)" onclick="logout()" class="nav-logout"><i class="fas fa-sign-out-alt"></i></a>
+            `;
+            loadWatchlist();
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        async function loadWatchlist() {
+            const list = await apiGetWatchlist(user.id);
+            const grid = document.getElementById('watchlistGrid');
+            if (list.length === 0) {
+                grid.innerHTML = '<p style="color:var(--text-muted);">Your watchlist is empty.</p>';
+            } else {
+                grid.innerHTML = list.map(m => `
+                    <div class="movie-card glass-card">
+                        <div class="movie-poster">
+                            <img src="${m.image_url || 'https://via.placeholder.com/300x450'}" alt="${m.title}" style="width:100%; aspect-ratio:2/3; object-fit:cover;">
+                        </div>
+                        <div class="movie-info" style="padding: 15px;">
+                            <h3><a href="movie-details.html?id=${m.id}" style="color:white; text-decoration:none;">${m.title}</a></h3>
+                            <p style="font-size:14px; margin: 8px 0; color:var(--text-muted);">${m.genre} | <i class="fas fa-star text-primary"></i> ${m.rating}</p>
+                            <button onclick="removeFromWatchlist(${m.id})" class="btn btn-outline" style="margin-top:10px; width:100%; padding: 8px;">Remove</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function removeFromWatchlist(movieId) {
+            await apiRemoveFromWatchlist(user.id, movieId);
+            loadWatchlist();
+        }
+
+
+    </script>
+</body>
+</html>

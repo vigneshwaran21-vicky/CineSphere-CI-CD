@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Details | CineSphere</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+</head>
+
+<body class="details-body">
+    <!-- Navigation -->
+    <nav class="navbar glass-card">
+        <div class="container nav-content">
+            <a href="index.html" class="logo">
+                <span class="logo-accent">Cine</span>Sphere
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#movies">Movies</a></li>
+                <li id="watchlistLink" style="display:none;"><a href="watchlist.html">Watchlist</a></li>
+                <li id="authLink"><a href="login.html">Login</a></li>
+            </ul>
+        </div>
+    </nav>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if(user) {
+                document.getElementById('authLink').innerHTML = `
+                    <a href="profile.html"><i class="fas fa-user-circle"></i> Profile</a>
+                    <a href="javascript:void(0)" onclick="logout()" class="nav-logout"><i class="fas fa-sign-out-alt"></i></a>
+                `;
+                document.getElementById('watchlistLink').style.display = 'inline-block';
+            }
+        });
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+    </script>
+
+
+    <!-- Movie Backdrop Hero -->
+    <div id="movieBackdrop" class="details-hero">
+        <div class="hero-overlay"></div>
+        <div class="container details-hero-content">
+            <div class="details-poster-wrapper glass-card">
+                <img id="detailPoster" src="" alt="">
+            </div>
+            <div class="details-info">
+                <h1 id="detailTitle" class="hero-title"></h1>
+                <div class="details-meta">
+                    <span id="detailYear"></span> &bull;
+                    <span id="detailDuration"></span> &bull;
+                    <span id="detailGenre"></span>
+                </div>
+                <button id="addToWatchlistBtn" class="btn btn-outline" style="margin:10px 0; display:none;"><i class="fas fa-plus"></i> Add to Watchlist</button>
+                <div class="details-rating-big">
+                    <i class="fas fa-star text-primary"></i>
+                    <span id="detailRating"></span> <span class="rating-max">/10</span>
+                </div>
+                <p id="detailDescription" class="hero-subtitle"></p>
+                <div class="details-crew">
+                    <div><strong>Director:</strong> <span id="detailDirector"></span></div>
+                    <div><strong>Cast:</strong> <span id="detailCast"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="container">
+        <!-- Interactive Section -->
+        <section class="section">
+            <div class="grid-2-cols">
+                <!-- Rating and Reviews Form -->
+                <div class="glass-card pd-2">
+                    <h2 class="section-title">Rate & Review</h2>
+                    <div class="user-rating-box" id="ratingInputBox" style="display:none;">
+                        <p>Share your thought on this movie:</p>
+                        <div class="star-rating" id="starInput">
+                            <i class="far fa-star" data-value="1"></i>
+                            <i class="far fa-star" data-value="2"></i>
+                            <i class="far fa-star" data-value="3"></i>
+                            <i class="far fa-star" data-value="4"></i>
+                            <i class="far fa-star" data-value="5"></i>
+                            <i class="far fa-star" data-value="6"></i>
+                            <i class="far fa-star" data-value="7"></i>
+                            <i class="far fa-star" data-value="8"></i>
+                            <i class="far fa-star" data-value="9"></i>
+                            <i class="far fa-star" data-value="10"></i>
+                        </div>
+                        <span id="ratingTip" class="text-primary" style="font-weight: 600;">Rate it!</span>
+                    </div>
+                    <form id="reviewForm" class="review-form">
+                        <textarea id="reviewText" placeholder="Write your review here..." required rows="4"></textarea>
+                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                    </form>
+                </div>
+
+                <!-- Reviews List -->
+                <div class="glass-card pd-2">
+                    <h2 class="section-title">User Reviews</h2>
+                    <div id="reviewsList" class="reviews-container">
+                        <!-- Reviews injected here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 CineSphere. Visualizing Cinema with Agile-ALM.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script src="assets/js/movies.js"></script>
+    <script src="assets/js/state.js"></script>
+    <script src="assets/js/details.js"></script>
+    <script>
+        // Integration script for Watchlist & Reviews
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const movieId = urlParams.get('id');
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            if(user && movieId) {
+                document.getElementById('ratingInputBox').style.display = 'block';
+                const btn = document.getElementById('addToWatchlistBtn');
+                btn.style.display = 'inline-block';
+                btn.onclick = async () => {
+                    const res = await apiAddToWatchlist(user.id, movieId);
+                    if(res.error) UI.showToast(res.message, 'error');
+                    else UI.showToast('Added to Watchlist!', 'success');
+                };
+                
+                // Rating interaction
+                const stars = document.querySelectorAll('#starInput i');
+                let currentRating = 0;
+                
+                stars.forEach(star => {
+                    star.addEventListener('mouseover', () => {
+                        const val = parseInt(star.getAttribute('data-value'));
+                        highlightStars(val);
+                    });
+                    star.addEventListener('mouseout', () => {
+                        highlightStars(currentRating);
+                    });
+                    star.addEventListener('click', () => {
+                        currentRating = parseInt(star.getAttribute('data-value'));
+                        highlightStars(currentRating);
+                        document.getElementById('ratingTip').textContent = `Rating: ${currentRating}/10`;
+                    });
+                });
+
+                function highlightStars(val) {
+                    stars.forEach(s => {
+                        const sVal = parseInt(s.getAttribute('data-value'));
+                        if(sVal <= val) {
+                            s.classList.remove('far');
+                            s.classList.add('fas');
+                        } else {
+                            s.classList.remove('fas');
+                            s.classList.add('far');
+                        }
+                    });
+                }
+
+                // Load reviews and check for existing
+                loadReviews(movieId);
+                
+                // Form handling
+                const form = document.getElementById('reviewForm');
+                const submitBtn = form.querySelector('button[type="submit"]');
+                let isUpdate = false;
+
+                async function checkExistingReview() {
+                    if (!user) return;
+                    const reviews = await apiGetReviews(movieId);
+                    const myReview = reviews.find(r => r.user_id == user.id || r.user_name == user.name);
+                    if (myReview) {
+                        isUpdate = true;
+                        currentRating = myReview.rating;
+                        highlightStars(currentRating);
+                        document.getElementById('ratingTip').textContent = `Your Rating: ${currentRating}/10`;
+                        document.getElementById('reviewText').value = myReview.comment;
+                        submitBtn.innerHTML = '<i class="fas fa-edit"></i> Update Review';
+                    }
+                }
+                checkExistingReview();
+
+                form.onsubmit = async (e) => {
+                    e.preventDefault();
+                    if (currentRating === 0) {
+                        UI.showToast("Please select a rating!", "error");
+                        return;
+                    }
+                    const text = document.getElementById('reviewText').value;
+                    
+                    const res = isUpdate 
+                        ? await apiUpdateReview(user.id, movieId, text, currentRating)
+                        : await apiAddReview(user.id, movieId, text, currentRating);
+                    
+                    if(res.error) {
+                        UI.showToast(res.message, "error");
+                    } else {
+                        UI.showToast(isUpdate ? "Review updated!" : "Review added!", "success");
+                        if(!isUpdate) {
+                            document.getElementById('reviewText').value = '';
+                            currentRating = 0;
+                            highlightStars(0);
+                            document.getElementById('ratingTip').textContent = 'Rate it!';
+                        }
+                        await loadReviews(movieId);
+                        await checkExistingReview();
+                    }
+                };
+            } else {
+                document.getElementById('reviewForm').innerHTML = '<p><a href="login.html" class="text-primary">Login</a> to write a review.</p>';
+                if(movieId) loadReviews(movieId);
+            }
+        });
+        
+        async function loadReviews(movieId) {
+            const list = await apiGetReviews(movieId);
+            const container = document.getElementById('reviewsList');
+            if(list.length === 0) {
+                container.innerHTML = '<p>No reviews yet.</p>';
+            } else {
+                container.innerHTML = list.map(r => {
+                    let starsHtml = '';
+                    for(let i=1; i<=10; i++) {
+                        starsHtml += i <= r.rating ? '<i class="fas fa-star" style="color:#fbc02d; font-size:12px;"></i>' : '<i class="far fa-star" style="color:#555; font-size:12px;"></i>';
+                    }
+                    return `
+                        <div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong>${r.user_name}</strong>
+                                <div>${starsHtml}</div>
+                            </div>
+                            <small style="color:#aaa;">${r.created_at}</small>
+                            <p style="margin-top:8px; line-height:1.5;">${r.comment}</p>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+    </script>
+</body>
+
+</html>

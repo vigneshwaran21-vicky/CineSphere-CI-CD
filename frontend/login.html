@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineSphere | Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <style>
+        .auth-container { max-width: 400px; margin: 100px auto; text-align: center; }
+        .auth-form { padding: 30px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #fff; }
+        .auth-btn { width: 100%; padding: 12px; }
+        .error-msg { color: #ff4d4d; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body>
+    <nav class="navbar glass-card">
+        <div class="container nav-content">
+            <a href="index.html" class="logo"><span class="logo-accent">Cine</span>Sphere</a>
+        </div>
+    </nav>
+    <div class="container auth-container">
+        <div style="text-align: left; margin-bottom: 15px;">
+            <a href="index.html" style="color: #aaa; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: color 0.3s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#aaa'">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+        <div class="auth-form glass-card">
+            <h2>Login</h2>
+            <br>
+            <form id="loginForm">
+                <input type="email" id="email" class="auth-input" placeholder="Email Address" required>
+                <input type="password" id="password" class="auth-input" placeholder="Password" required>
+                <div style="text-align: right; margin-bottom: 20px;">
+                    <a href="forgot-password.html" class="text-primary" style="font-size: 14px;">Forgot Password?</a>
+                </div>
+                <button type="submit" class="btn btn-primary auth-btn" id="submitBtn">Login</button>
+            </form>
+            <p style="margin-top:20px;">Don't have an account? <a href="register.html" class="text-primary">Register</a></p>
+        </div>
+    </div>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('submitBtn');
+            
+            btn.innerHTML = 'Logging in...';
+            btn.disabled = true;
+
+            const res = await apiLogin(email, password);
+            if(res.error) {
+                UI.showToast(res.message, 'error');
+                btn.innerHTML = 'Login';
+                btn.disabled = false;
+            } else {
+                UI.showToast('Welcome back!', 'success');
+                localStorage.setItem('user', JSON.stringify(res.user));
+                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
