@@ -55,22 +55,24 @@ pipeline {
 }
 
         stage('Database Migration') {
-            steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
-                    echo 'Applying Database Schema...'
+    steps {
+        withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+            echo 'Applying Database Schema...'
 
-                    bat 'icacls "%SSH_KEY%" /inheritance:r /grant "%USERNAME%:F"'
+            bat 'icacls "%SSH_KEY%" /inheritance:r'
+            bat 'icacls "%SSH_KEY%" /grant:r SYSTEM:F'
+            bat 'icacls "%SSH_KEY%" /grant:r Administrators:F'
 
-                    bat """
-                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "mysql -u%DB_USER% -p%DB_PASS% -e 'CREATE DATABASE IF NOT EXISTS %DB_NAME%'"
-                    """
+            bat """
+            ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "mysql -u%DB_USER% -p%DB_PASS% -e \\"CREATE DATABASE IF NOT EXISTS %DB_NAME%\\""
+            """
 
-                    bat """
-                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "mysql -u%DB_USER% -p%DB_PASS% %DB_NAME% < /var/www/html/cinesphere/database.sql"
-                    """
-                }
-            }
+            bat """
+            ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "mysql -u%DB_USER% -p%DB_PASS% %DB_NAME% < /var/www/html/cinesphere/database.sql"
+            """
         }
+    }
+}
 
         stage('Smoke Test') {
             steps {
