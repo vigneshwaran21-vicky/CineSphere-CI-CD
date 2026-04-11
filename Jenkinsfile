@@ -54,24 +54,23 @@ pipeline {
     }
 }
 
-        stage('Database Migration') {
+stage('Database Migration') {
     steps {
         withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
-            echo 'Applying Database Schema...'
 
             bat 'icacls "%SSH_KEY%" /inheritance:r'
             bat 'icacls "%SSH_KEY%" /grant:r SYSTEM:F'
             bat 'icacls "%SSH_KEY%" /grant:r Administrators:F'
 
-           bat """
-ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% ^
-"sudo mysql -e \\"CREATE DATABASE IF NOT EXISTS %DB_NAME%\\""
-"""
+            bat """
+            ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% ^
+            "sudo mysql -e \\"CREATE DATABASE IF NOT EXISTS %DB_NAME%\\""
+            """
 
-           bat """
-ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% ^
-"sudo mysql %DB_NAME% < /var/www/html/cinesphere/database.sql"
-"""
+            bat """
+            ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% ^
+            "sudo mysql %DB_NAME% < /var/www/html/cinesphere/database.sql"
+            """
         }
     }
 }
