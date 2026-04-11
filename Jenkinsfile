@@ -29,7 +29,11 @@ pipeline {
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
                     echo "Deploying to %EC2_IP%..."
 
-                    bat 'icacls "%SSH_KEY%" /inheritance:r /grant "%USERNAME%:F"'
+                    bat """
+icacls "%SSH_KEY%" /inheritance:r
+icacls "%SSH_KEY%" /grant:r SYSTEM:F
+icacls "%SSH_KEY%" /grant:r Administrators:F
+"""
 
                     bat """
                     ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo mkdir -p /var/www/html/cinesphere"
