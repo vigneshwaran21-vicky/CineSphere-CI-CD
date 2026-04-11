@@ -20,7 +20,7 @@ pipeline {
         stage('Build & Lint') {
             steps {
                 echo 'Running PHP Lint...'
-                sh 'find . -name "*.php" -exec php -l {} \\;'
+                bat 'for /r %i in (*.php) do php -l "%i"'
             }
         }
 
