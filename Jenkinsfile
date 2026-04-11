@@ -24,25 +24,31 @@ pipeline {
         }
 
         stage('Deploy to AWS EC2') {
-            steps {
-                // Use withCredentials instead of sshagent on Windows
-                withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
-                    echo "Deploying to %EC2_IP%..."
+    steps {
+        withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
 
-                    bat """
-                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo mkdir -p /var/www/html/cinesphere"
-                    """
+            echo "Deploying to %EC2_IP%..."
 
-                    bat """
-                    scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no -r * %EC2_USER%@%EC2_IP%:/var/www/html/cinesphere
-                    """
+            // 🔥 FIX PERMISSIONS
+            bat """
+            icacls "%SSH_KEY%" /inheritance:r
+            icacls "%SSH_KEY%" /grant:r "%USERNAME%:R"
+            """
 
-                    bat """
-                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo chown -R www-data:www-data /var/www/html/cinesphere"
-                    """
-                }
-            }
+            bat """
+            ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo mkdir -p /var/www/html/cinesphere"
+            """
+
+            bat """
+            scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no -r * %EC2_USER%@%EC2_IP%:/var/www/html/cinesphere
+            """
+
+            bat """
+            ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo chown -R www-data:www-data /var/www/html/cinesphere"
+            """
         }
+    }
+}
 
         stage('Database Migration') {
             steps {
