@@ -6,7 +6,7 @@ pipeline {
         DB_USER = 'root'
         DB_PASS = credentials('db-password')
         EC2_USER = 'ubuntu'
-        EC2_IP = 'your-ec2-public-ip'
+        EC2_IP = '65.0.193.223'
         SSH_KEY_ID = 'aws-ssh-key'
     }
 
@@ -26,7 +26,7 @@ pipeline {
 
         stage('Deploy to AWS EC2') {
             steps {
-                sshagent([SSH_KEY_ID]) {
+                sshagent(credentials: ['aws-ssh-key']) {
                     echo "Deploying to %EC2_IP%..."
 
                     bat """
