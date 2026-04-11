@@ -7,7 +7,6 @@ pipeline {
         DB_PASS = credentials('db-password')
         EC2_USER = 'ubuntu'
         EC2_IP = '65.0.193.223'
-        SSH_KEY_ID = 'aws-ssh-key'
     }
 
     stages {
@@ -26,19 +25,20 @@ pipeline {
 
         stage('Deploy to AWS EC2') {
             steps {
-                sshagent(credentials: ['aws-ssh-key']) {
+                // Use withCredentials instead of sshagent on Windows
+                withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
                     echo "Deploying to %EC2_IP%..."
 
                     bat """
-                    ssh -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo mkdir -p /var/www/html/cinesphere"
+                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo mkdir -p /var/www/html/cinesphere"
                     """
 
                     bat """
-                    scp -o StrictHostKeyChecking=no -r * %EC2_USER%@%EC2_IP%:/var/www/html/cinesphere
+                    scp -i "%SSH_KEY%" -o StrictHostKeyChecking=no -r * %EC2_USER%@%EC2_IP%:/var/www/html/cinesphere
                     """
 
                     bat """
-                    ssh -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo chown -R www-data:www-data /var/www/html/cinesphere"
+                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "sudo chown -R www-data:www-data /var/www/html/cinesphere"
                     """
                 }
             }
@@ -46,15 +46,15 @@ pipeline {
 
         stage('Database Migration') {
             steps {
-                sshagent([SSH_KEY_ID]) {
+                withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
                     echo 'Applying Database Schema...'
 
                     bat """
-                    ssh -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "mysql -u%DB_USER% -p%DB_PASS% -e \\"CREATE DATABASE IF NOT EXISTS %DB_NAME%\\""
+                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "mysql -u%DB_USER% -p%DB_PASS% -e 'CREATE DATABASE IF NOT EXISTS %DB_NAME%'"
                     """
 
                     bat """
-                    ssh -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "mysql -u%DB_USER% -p%DB_PASS% %DB_NAME% < /var/www/html/cinesphere/database.sql"
+                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %EC2_USER%@%EC2_IP% "mysql -u%DB_USER% -p%DB_PASS% %DB_NAME% < /var/www/html/cinesphere/database.sql"
                     """
                 }
             }
