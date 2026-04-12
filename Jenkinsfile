@@ -22,6 +22,13 @@ pipeline {
                 bat 'for /r %%i in (*.php) do php -l "%%i"'
             }
         }
+        
+        stage('Unit Testing') {
+            steps {
+                echo 'Running Unit Tests...'
+                bat 'php tests\\RunTests.php'
+            }
+        }
 
         stage('Deploy to AWS EC2') {
     steps {
