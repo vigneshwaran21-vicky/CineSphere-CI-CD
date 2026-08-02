@@ -76,9 +76,17 @@ async function apiSearchMovies(query) {
 
 async function apiGetMovie(id) {
     try {
-        const res = await fetch(`${BASE_URL}/movies.php?action=detail&id=${id}`);
-        return await res.json();
-    } catch { return null; }
+        const res = await fetch(`${BASE_URL}/movies.php?action=all&t=${new Date().getTime()}`);
+        if (!res.ok) return { error: true, message: `HTTP ${res.status}` };
+        const text = await res.text();
+        try {
+            return JSON.parse(text);
+        } catch(e) {
+            return { error: true, message: `JSON Error: ${e.message}. Data: ${text.substring(0,50)}` };
+        }
+    } catch(e) { 
+        return { error: true, message: `Fetch Error: ${e.message}` }; 
+    }
 }
 
 async function apiGetWatchlist(userId) {
