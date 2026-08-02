@@ -112,7 +112,7 @@ pipeline {
                 echo "==============================="
 
                 bat '''
-                bandit -r .
+                'python -m bandit -r .'
                 '''
 
                 bat '''
