@@ -1,4 +1,4 @@
-const BASE_URL = '../backend';
+const BASE_URL = '/backend';
 
 async function apiRegister(name, email, password) {
     try {
