@@ -29,8 +29,10 @@ const app = {
             if(!movies.error && movies.length > 0) {
                 UI.renderMovieGrid('featuredMovies', movies.slice(0, 12));
                 UI.renderMovieGrid('topRatedMovies', movies.slice(12, 24));
-            } else {
-                featuredGrid.innerHTML = '<p style="text-align:center;width:100%;">Failed to connect to Live API. Please check your connection.</p>';
+            } else if (movies.error) {
+                featuredGrid.innerHTML = `<p style="text-align:center;width:100%;color:red;padding:20px;border:1px solid red;background:rgba(255,0,0,0.1);">Detailed Error: ${movies.message}</p>`;
+            }else {
+                featuredGrid.innerHTML = '<p style="text-align:center;width:100%;">Failed to connect to Live API. No movies returned.</p>';
             }
         } catch(e) {
             featuredGrid.innerHTML = '<p style="text-align:center;width:100%;">Live Data Server Error.</p>';
