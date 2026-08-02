@@ -38,29 +38,53 @@ pipeline {
         echo "==============================="
 
         bat '''
-        echo ===== Counting Lines of Code =====
-
-        powershell -Command ^
-        "$files=Get-ChildItem -Recurse -Include *.php,*.js,*.html,*.css; ^
-        $count=0; ^
-        foreach($f in $files){$count+=(Get-Content $f.FullName).Count}; ^
-        Write-Host 'TOTAL LINES OF CODE:' $count"
+        echo.
+        echo ============================================
+        echo TOTAL FILES
+        echo ============================================
+        dir /s /b *.php *.js *.html *.css
         '''
 
         bat '''
         echo.
-        echo ===== Cyclomatic Complexity =====
-        lizard .
+        echo ============================================
+        echo LINES OF CODE
+        echo ============================================
+        powershell -NoProfile -Command "$c=(Get-ChildItem -Recurse -Include *.php,*.js,*.html,*.css | Get-Content | Measure-Object -Line).Lines; Write-Host 'TOTAL LINES OF CODE:' $c"
         '''
 
         bat '''
         echo.
-        echo ===== Maintainability =====
-        radon mi .
+        echo ============================================
+        echo PHP FILE COUNT
+        echo ============================================
+        dir /s *.php | find /c ".php"
         '''
 
+        bat '''
+        echo.
+        echo ============================================
+        echo JAVASCRIPT FILE COUNT
+        echo ============================================
+        dir /s *.js | find /c ".js"
+        '''
+
+        bat '''
+        echo.
+        echo ============================================
+        echo HTML FILE COUNT
+        echo ============================================
+        dir /s *.html | find /c ".html"
+        '''
+
+        bat '''
+        echo.
+        echo ============================================
+        echo CSS FILE COUNT
+        echo ============================================
+        dir /s *.css | find /c ".css"
+        '''
     }
-
 }
 
         stage('Security Scan') {
