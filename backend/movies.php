@@ -1,11 +1,8 @@
-
-
-
 <?php
 
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+error_reporting(0);
+ini_set('display_errors', 0);
 
 $action = isset($_GET['action']) ? $_GET['action'] : 'all';
 
@@ -20,7 +17,7 @@ function fetchFromTMDB($endpoint) {
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $response = curl_exec($ch);
     if(curl_errno($ch)) return null;
-    curl_close($ch);
+    // curl_close is deprecated in newer PHP versions and not needed for CurlHandle objects
     return json_decode($response, true);
 }
 
