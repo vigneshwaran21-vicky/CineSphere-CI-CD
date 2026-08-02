@@ -87,6 +87,23 @@ pipeline {
     }
 }
 
+
+        stage('Check Python') {
+    steps {
+        bat '''
+        echo ============================
+        echo CHECKING PYTHON
+        echo ============================
+
+        where python
+
+        python --version
+
+        python -m bandit --version
+        '''
+    }
+}
+
         stage('Security Scan') {
             steps {
 
