@@ -29,35 +29,39 @@ pipeline {
             }
         }
 
-        stage('Software Metrics') {
-            steps {
-                echo "==============================="
-                echo "SOFTWARE METRICS"
-                echo "==============================="
+       stage('Software Metrics') {
 
-                bat '''
-                echo ===== Lines of Code =====
-                python -c "import os;total=0
-for root,dirs,files in os.walk('.'):
-    for f in files:
-        if f.endswith(('.php','.js','.html','.css')):
-            total+=sum(1 for line in open(os.path.join(root,f),encoding='utf8',errors='ignore'))
-print('TOTAL LINES:',total)"
-                '''
+    steps {
 
-                bat '''
-                echo.
-                echo ===== Cyclomatic Complexity =====
-                lizard .
-                '''
+        echo "==============================="
+        echo "SOFTWARE METRICS"
+        echo "==============================="
 
-                bat '''
-                echo.
-                echo ===== Maintainability =====
-                radon mi .
-                '''
-            }
-        }
+        bat '''
+        echo ===== Counting Lines of Code =====
+
+        powershell -Command ^
+        "$files=Get-ChildItem -Recurse -Include *.php,*.js,*.html,*.css; ^
+        $count=0; ^
+        foreach($f in $files){$count+=(Get-Content $f.FullName).Count}; ^
+        Write-Host 'TOTAL LINES OF CODE:' $count"
+        '''
+
+        bat '''
+        echo.
+        echo ===== Cyclomatic Complexity =====
+        lizard .
+        '''
+
+        bat '''
+        echo.
+        echo ===== Maintainability =====
+        radon mi .
+        '''
+
+    }
+
+}
 
         stage('Security Scan') {
             steps {
