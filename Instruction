@@ -1,0 +1,237 @@
+CineSphere Deployment Guide (AWS EC2 + Apache + MySQL + PHP)
+Step 1: Create EC2 Instance
+Ubuntu 26.04 LTS
+t2.micro (or higher)
+Allow Security Group Ports:
+SSH (22)
+HTTP (80)
+HTTPS (443)
+
+Connect to the instance:
+
+ssh -i "your-key.pem" ubuntu@YOUR_PUBLIC_IP
+Step 2: Update Ubuntu
+sudo apt update
+sudo apt upgrade -y
+Step 3: Install Apache
+sudo apt install apache2 -y
+
+Start Apache
+
+sudo systemctl start apache2
+
+Enable Apache on boot
+
+sudo systemctl enable apache2
+
+Check status
+
+sudo systemctl status apache2
+
+Restart Apache
+
+sudo systemctl restart apache2
+
+Test
+
+curl http://localhost
+Step 4: Install PHP
+sudo apt install php php-mysql php-curl php-cli php-json -y
+
+Check version
+
+php -v
+Step 5: Install MySQL
+sudo apt install mysql-server -y
+
+Start MySQL
+
+sudo systemctl start mysql
+
+Enable MySQL
+
+sudo systemctl enable mysql
+Step 6: Login to MySQL
+sudo mysql
+Step 7: Create Database
+CREATE DATABASE cinesphere_db;
+Step 8: Create Database User
+CREATE USER 'movieuser'@'localhost' IDENTIFIED BY '1234';
+Step 9: Give Permissions
+GRANT ALL PRIVILEGES ON cinesphere_db.* TO 'movieuser'@'localhost';
+
+FLUSH PRIVILEGES;
+Step 10: Exit MySQL
+EXIT;
+Step 11: Install Git
+sudo apt install git -y
+Step 12: Go to Apache Folder
+cd /var/www/html
+
+Delete default page
+
+sudo rm -f index.html
+Step 13: Clone GitHub Repository
+sudo git clone https://github.com/USERNAME/REPOSITORY.git
+
+Example
+
+sudo git clone https://github.com/VigneshwaranT/CineSphere.git
+Step 14: Copy Project Files
+sudo cp -r /var/www/html/CineSphere/* /var/www/html/
+Step 15: Set Permissions
+sudo chown -R www-data:www-data /var/www/html
+
+sudo chmod -R 755 /var/www/html
+Step 16: Import Database
+cd /var/www/html
+
+mysql -u movieuser -p cinesphere_db < database.sql
+
+Password
+
+1234
+Step 17: Configure Database
+
+Open
+
+sudo nano /var/www/html/backend/db.php
+
+or
+
+sudo nano /var/www/html/backend/config.php
+
+Use
+
+$host="localhost";
+$db="cinesphere_db";
+$user="movieuser";
+$pass="1234";
+
+Save
+
+Ctrl + O
+
+Enter
+
+Ctrl + X
+Step 18: Configure TMDB API
+
+Open
+
+sudo nano /var/www/html/backend/tmdb_config.php
+
+Replace
+
+define('TMDB_API_KEY','YOUR_TMDB_API_KEY_HERE');
+
+with
+
+define('TMDB_API_KEY','YOUR_API_KEY');
+
+Save
+
+Ctrl+O
+
+Enter
+
+Ctrl+X
+Step 19: Restart Apache
+sudo systemctl restart apache2
+Step 20: Check Apache
+sudo systemctl status apache2
+
+Should show
+
+active (running)
+Step 21: Test Database
+php /var/www/html/backenddb.php
+
+Expected
+
+DB CONNECTED SUCCESSFULLY
+Step 22: Test Website
+
+Local
+
+curl http://localhost
+
+Public
+
+http://YOUR_PUBLIC_IP
+
+Example
+
+http://13.203.xxx.xxx
+Step 23: Check API
+
+Movies API
+
+http://YOUR_PUBLIC_IP/backend/movies.php?action=all
+
+Expected
+
+[
+ {
+   "title":"Spider-Man",
+   ...
+ }
+]
+Step 24: Useful Commands
+
+Restart Apache
+
+sudo systemctl restart apache2
+
+Start Apache
+
+sudo systemctl start apache2
+
+Stop Apache
+
+sudo systemctl stop apache2
+
+Apache Status
+
+sudo systemctl status apache2
+
+Restart MySQL
+
+sudo systemctl restart mysql
+
+MySQL Status
+
+sudo systemctl status mysql
+Step 25: Git Update (Later)
+cd /var/www/html/CineSphere
+
+sudo git pull
+
+Copy updated files
+
+sudo cp -r /var/www/html/CineSphere/* /var/www/html/
+
+Restart Apache
+
+sudo systemctl restart apache2
+Step 26: Common Errors
+Website not opening
+sudo systemctl status apache2
+Database not connecting
+php /var/www/html/backenddb.php
+API not loading
+curl http://YOUR_PUBLIC_IP/backend/movies.php?action=all
+Check Apache Logs
+sudo tail -100 /var/log/apache2/error.log
+Check PHP Modules
+php -m
+Check MySQL
+sudo mysql
+Check Public IP
+curl ifconfig.me
+Check Local IP
+hostname -I
+Check Port 80
+sudo ss -tlnp | grep :80
+Verify Apache Virtual Host
+sudo apache2ctl -S
