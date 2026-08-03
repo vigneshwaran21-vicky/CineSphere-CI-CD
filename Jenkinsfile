@@ -166,8 +166,7 @@ pipeline {
                 '''
             }
         }
-
-                stage('Deploy to AWS EC2') {
+        stage('Deploy to AWS EC2') {
             steps {
                 echo "==============================="
                 echo "DEPLOYING TO AWS EC2"
@@ -180,12 +179,11 @@ pipeline {
                     
                     echo Deploying to EC2 instance ${EC2_HOST}...
                     ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_HOST} ^
-                    "cd /var/www/html && echo 'Pulling latest code from GitHub...' && sudo git pull origin main && echo 'Restarting Apache...' && sudo systemctl restart apache2 && echo 'Deployment completed successfully!'"
+                    "sudo mkdir -p /var/www/html && cd /var/www/html && sudo git init && sudo git remote remove origin ; sudo git remote add origin https://github.com/vigneshwaran21-vicky/CineSphere-CI-CD.git && sudo git fetch origin && sudo git reset --hard origin/main && sudo systemctl restart apache2 && echo 'Deployment completed successfully!'"
                     """
                 }
             }
         }
-
         stage('Website Health Check') {
             steps {
                 echo "==============================="
