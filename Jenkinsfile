@@ -184,7 +184,7 @@ pipeline {
                 }
             }
         }
-        stage('Website Health Check') {
+                stage('Website Health Check') {
             steps {
                 echo "==============================="
                 echo "HEALTH CHECK"
@@ -192,7 +192,7 @@ pipeline {
                 
                 bat """
                 echo Checking website health at http://${EC2_HOST}
-                curl -s -o nul -w "HTTP Status: %%{http_code}\n" http://${EC2_HOST}
+                curl -s -o nul -w "HTTP Status: %%{http_code}\\n" http://${EC2_HOST}
                 """
             }
         }
