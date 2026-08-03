@@ -10,7 +10,7 @@ pipeline {
         GIT_REPO = "https://github.com/vigneshwaran21-vicky/CineSphere-CI-CD.git"
         BRANCH = "main"
         EC2_USER = "ubuntu"
-        EC2_HOST = "13.203.101.232/"
+        EC2_HOST = "13.203.101.232" // REMOVED TRAILING SLASH
         SSH_CREDENTIAL = "aws-ec2"  // Updated to match the credentials ID used below
     }
 
@@ -173,16 +173,12 @@ pipeline {
                 echo "DEPLOYING TO AWS EC2"
                 echo "==============================="
                 
-                sshagent(credentials: ['aws-ec2']) {
+                // FIXED: Replaced buggy sshagent with withCredentials
+                withCredentials([sshUserPrivateKey(credentialsId: 'aws-ec2', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     bat """
                     echo Deploying to EC2 instance ${EC2_HOST}...
-                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} ^
-                    "cd /var/www/html &&
-                    echo 'Pulling latest code from GitHub...' &&
-                    sudo git pull origin main &&
-                    echo 'Restarting Apache...' &&
-                    sudo systemctl restart apache2 &&
-                    echo 'Deployment completed successfully!'"
+                    ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_HOST} ^
+                    "cd /var/www/html && echo 'Pulling latest code from GitHub...' && sudo git pull origin main && echo 'Restarting Apache...' && sudo systemctl restart apache2 && echo 'Deployment completed successfully!'"
                     """
                 }
             }
