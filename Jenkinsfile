@@ -134,7 +134,7 @@ pipeline {
             }
         }
 
-        stage('Unit Testing') {
+                stage('Unit Testing') {
             steps {
                 echo "==============================="
                 echo "UNIT TEST"
@@ -142,12 +142,8 @@ pipeline {
                 
                 bat '''
                 @echo off
-                if exist vendor\\bin\\phpunit (
-                    echo Running PHPUnit tests...
-                    vendor\\bin\\phpunit
-                ) else (
-                    echo PHPUnit Not Configured. Skipping unit tests.
-                )
+                echo Running Custom PHP Unit Tests...
+                php tests\\RunTests.php
                 '''
             }
         }
