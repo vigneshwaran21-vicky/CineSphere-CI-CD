@@ -167,15 +167,17 @@ pipeline {
             }
         }
 
-        stage('Deploy to AWS EC2') {
+                stage('Deploy to AWS EC2') {
             steps {
                 echo "==============================="
                 echo "DEPLOYING TO AWS EC2"
                 echo "==============================="
                 
-                // FIXED: Replaced buggy sshagent with withCredentials
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-ec2', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     bat """
+                    echo Fixing permissions for SSH key...
+                    for /f "delims=" %%i in ('whoami') do icacls "%SSH_KEY%" /inheritance:r /grant:r "%%i:F"
+                    
                     echo Deploying to EC2 instance ${EC2_HOST}...
                     ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_HOST} ^
                     "cd /var/www/html && echo 'Pulling latest code from GitHub...' && sudo git pull origin main && echo 'Restarting Apache...' && sudo systemctl restart apache2 && echo 'Deployment completed successfully!'"
