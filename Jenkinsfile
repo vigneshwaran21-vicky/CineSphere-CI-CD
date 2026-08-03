@@ -10,8 +10,8 @@ pipeline {
         GIT_REPO = "https://github.com/vigneshwaran21-vicky/CineSphere-CI-CD.git"
         BRANCH = "main"
         EC2_USER = "ubuntu"
-        EC2_HOST = "13.203.101.232" // REMOVED TRAILING SLASH
-        SSH_CREDENTIAL = "aws-ec2"  // Updated to match the credentials ID used below
+        EC2_HOST = "13.203.101.232"
+        SSH_CREDENTIAL = "aws-ec2"
     }
 
     stages {
@@ -28,56 +28,29 @@ pipeline {
 
         stage('Software Metrics') {
             steps {
-                echo "==============================="
-                echo "SOFTWARE METRICS"
-                echo "==============================="
-
-                bat '''
-                echo.
-                echo ============================================
-                echo TOTAL FILES
-                echo ============================================
-                dir /s /b *.php *.js *.html *.css
-                '''
-
-                bat '''
-                echo.
-                echo ============================================
-                echo LINES OF CODE
-                echo ============================================
-                powershell -NoProfile -Command "$c=(Get-ChildItem -Recurse -Include *.php,*.js,*.html,*.css | Get-Content | Measure-Object -Line).Lines; Write-Host 'TOTAL LINES OF CODE:' $c"
-                '''
-
-                bat '''
-                echo.
-                echo ============================================
-                echo PHP FILE COUNT
-                echo ============================================
-                dir /s *.php | find /c ".php"
-                '''
-
-                bat '''
-                echo.
-                echo ============================================
-                echo JAVASCRIPT FILE COUNT
-                echo ============================================
-                dir /s *.js | find /c ".js"
-                '''
-
-                bat '''
-                echo.
-                echo ============================================
-                echo HTML FILE COUNT
-                echo ============================================
-                dir /s *.html | find /c ".html"
-                '''
-
-                bat '''
-                echo.
-                echo ============================================
-                echo CSS FILE COUNT
-                echo ============================================
-                dir /s *.css | find /c ".css"
+                powershell '''
+                $files = Get-ChildItem -Path .\\* -Recurse -Include *.php,*.js,*.html,*.css
+                
+                $lines = 0
+                if ($files) {
+                    $lines = ($files | Get-Content -ErrorAction SilentlyContinue | Measure-Object -Line).Lines
+                }
+                
+                $php = @($files | Where-Object Extension -eq '.php').Count
+                $js = @($files | Where-Object Extension -eq '.js').Count
+                $html = @($files | Where-Object Extension -eq '.html').Count
+                $css = @($files | Where-Object Extension -eq '.css').Count
+                
+                Write-Host "============================================"
+                Write-Host "          SOFTWARE METRICS SUMMARY          "
+                Write-Host "============================================"
+                Write-Host "Total Files         : $($files.Count)"
+                Write-Host "Total Lines of Code : $lines"
+                Write-Host "PHP Files           : $php"
+                Write-Host "JavaScript Files    : $js"
+                Write-Host "HTML Files          : $html"
+                Write-Host "CSS Files           : $css"
+                Write-Host "============================================"
                 '''
             }
         }
@@ -85,6 +58,7 @@ pipeline {
         stage('Check Python') {
             steps {
                 bat '''
+                @echo off
                 echo ============================
                 echo CHECKING PYTHON
                 echo ============================
@@ -101,9 +75,10 @@ pipeline {
                 echo "==============================="
                 
                 bat '''
+                @echo off
                 echo Installing Python packages...
-                python -m pip install --upgrade pip
-                pip install bandit safety
+                python -m pip install --upgrade pip -q
+                pip install bandit safety -q
                 echo Python dependencies installed successfully!
                 '''
             }
@@ -116,12 +91,15 @@ pipeline {
                 echo "==============================="
                 
                 bat '''
+                @echo off
                 echo Running Bandit security scan...
-                python -m bandit -r . -f txt || echo "Bandit scan completed with warnings"
+                python -m bandit -r . -f txt -q || (echo WARNING: Bandit found issues & python -m bandit -r . -f txt)
                 
                 echo.
                 echo Running Safety security check...
-                safety check || echo "Safety check completed with warnings"
+                safety check >nul 2>&1 || (echo WARNING: Safety found issues & safety check)
+                
+                echo Security scan completed successfully!
                 '''
             }
         }
@@ -133,18 +111,24 @@ pipeline {
                 echo "==============================="
                 
                 bat '''
+                @echo off
                 set ERROR_COUNT=0
-                echo Checking PHP files...
+                echo Checking PHP files silently...
+                
                 for /R %%f in (*.php) do (
-                    php -l "%%f"
-                    if errorlevel 1 set ERROR_COUNT=1
+                    php -l "%%f" >nul 2>&1
+                    if errorlevel 1 (
+                        set ERROR_COUNT=1
+                        php -l "%%f"
+                    )
                 )
+                
                 echo.
                 if %ERROR_COUNT%==1 (
                     echo PHP syntax errors found!
                     exit /b 1
                 ) else (
-                    echo All PHP files passed syntax check!
+                    echo All PHP files passed syntax check successfully!
                 )
                 '''
             }
@@ -157,6 +141,7 @@ pipeline {
                 echo "==============================="
                 
                 bat '''
+                @echo off
                 if exist vendor\\bin\\phpunit (
                     echo Running PHPUnit tests...
                     vendor\\bin\\phpunit
@@ -166,7 +151,8 @@ pipeline {
                 '''
             }
         }
-                stage('Deploy to AWS EC2') {
+        
+        stage('Deploy to AWS EC2') {
             steps {
                 echo "==============================="
                 echo "DEPLOYING TO AWS EC2"
@@ -174,23 +160,26 @@ pipeline {
                 
                 withCredentials([sshUserPrivateKey(credentialsId: 'aws-ec2', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     bat """
+                    @echo off
                     echo Fixing permissions for SSH key...
-                    for /f "delims=" %%i in ('whoami') do icacls "%SSH_KEY%" /inheritance:r /grant:r "%%i:F"
+                    for /f "delims=" %%i in ('whoami') do icacls "%SSH_KEY%" /inheritance:r /grant:r "%%i:F" >nul
                     
                     echo Deploying to EC2 instance ${EC2_HOST}...
                     ssh -i "%SSH_KEY%" -o StrictHostKeyChecking=no %SSH_USER%@${EC2_HOST} ^
-                    "sudo mkdir -p /var/www/html && cd /var/www/html && sudo git init && sudo git config --global --add safe.directory /var/www/html && sudo git remote remove origin ; sudo git remote add origin https://github.com/vigneshwaran21-vicky/CineSphere-CI-CD.git && sudo git fetch origin && sudo git reset --hard origin/main && sudo systemctl restart apache2 && echo 'Deployment completed successfully!'"
+                    "sudo mkdir -p /var/www/html && cd /var/www/html && sudo git init -q && sudo git config --global --add safe.directory /var/www/html && sudo git remote remove origin 2>/dev/null ; sudo git remote add origin https://github.com/vigneshwaran21-vicky/CineSphere-CI-CD.git && sudo git fetch origin -q && sudo git reset --hard origin/main -q && sudo systemctl restart apache2 && echo 'Deployment completed successfully!'"
                     """
                 }
             }
         }
-                stage('Website Health Check') {
+        
+        stage('Website Health Check') {
             steps {
                 echo "==============================="
                 echo "HEALTH CHECK"
                 echo "==============================="
                 
                 bat """
+                @echo off
                 echo Checking website health at http://${EC2_HOST}
                 curl -s -o nul -w "HTTP Status: %%{http_code}\\n" http://${EC2_HOST}
                 """
