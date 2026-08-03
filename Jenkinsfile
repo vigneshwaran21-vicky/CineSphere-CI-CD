@@ -134,16 +134,21 @@ pipeline {
             }
         }
 
-                stage('Unit Testing') {
+                        stage('Unit Testing (PHPUnit + Xdebug)') {
             steps {
                 echo "==============================="
-                echo "UNIT TEST"
+                echo "PHPUNIT CODE COVERAGE"
                 echo "==============================="
                 
                 bat '''
                 @echo off
-                echo Running Custom PHP Unit Tests...
-                php tests\\RunTests.php
+                echo Downloading PHPUnit...
+                if not exist tools mkdir tools
+                if not exist tools\\phpunit.phar curl -sL https://phar.phpunit.de/phpunit-10.5.phar -o tools\\phpunit.phar
+                
+                echo.
+                echo Running Unit Tests and generating Xdebug Coverage Report...
+                php tools\\phpunit.phar tests\\CineSphereTest.php --coverage-text --coverage-filter backend/
                 '''
             }
         }
