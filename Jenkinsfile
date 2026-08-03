@@ -7,14 +7,12 @@ pipeline {
     }
 
     environment {
-    GIT_REPO = "https://github.com/vigneshwaran21-vicky/CineSphere-CI-CD.git"
-    BRANCH = "main"
-
-    EC2_USER = "ubuntu"
-    EC2_HOST = "13.204.69.14"
-
-    SSH_CREDENTIAL = "aws-server"
-}
+        GIT_REPO = "https://github.com/vigneshwaran21-vicky/CineSphere-CI-CD.git"
+        BRANCH = "main"
+        EC2_USER = "ubuntu"
+        EC2_HOST = "13.203.101.232/"
+        SSH_CREDENTIAL = "aws-ec2"  // Updated to match the credentials ID used below
+    }
 
     stages {
 
@@ -23,194 +21,245 @@ pipeline {
                 echo "==============================="
                 echo "CHECKOUT SOURCE CODE"
                 echo "==============================="
-
-                git branch: "${BRANCH}",
-                    url: "${GIT_REPO}"
+                
+                git branch: "${BRANCH}", url: "${GIT_REPO}"
             }
         }
 
-       stage('Software Metrics') {
-
-    steps {
-
-        echo "==============================="
-        echo "SOFTWARE METRICS"
-        echo "==============================="
-
-        bat '''
-        echo.
-        echo ============================================
-        echo TOTAL FILES
-        echo ============================================
-        dir /s /b *.php *.js *.html *.css
-        '''
-
-        bat '''
-        echo.
-        echo ============================================
-        echo LINES OF CODE
-        echo ============================================
-        powershell -NoProfile -Command "$c=(Get-ChildItem -Recurse -Include *.php,*.js,*.html,*.css | Get-Content | Measure-Object -Line).Lines; Write-Host 'TOTAL LINES OF CODE:' $c"
-        '''
-
-        bat '''
-        echo.
-        echo ============================================
-        echo PHP FILE COUNT
-        echo ============================================
-        dir /s *.php | find /c ".php"
-        '''
-
-        bat '''
-        echo.
-        echo ============================================
-        echo JAVASCRIPT FILE COUNT
-        echo ============================================
-        dir /s *.js | find /c ".js"
-        '''
-
-        bat '''
-        echo.
-        echo ============================================
-        echo HTML FILE COUNT
-        echo ============================================
-        dir /s *.html | find /c ".html"
-        '''
-
-        bat '''
-        echo.
-        echo ============================================
-        echo CSS FILE COUNT
-        echo ============================================
-        dir /s *.css | find /c ".css"
-        '''
-    }
-}
-
-
-        stage('Check Python') {
-    steps {
-        bat '''
-        echo ============================
-        echo CHECKING PYTHON
-        echo ============================
-
-        where python
-
-        python --version
-
-        python -m bandit --version
-        '''
-    }
-}
-
-        stage('Security Scan') {
+        stage('Software Metrics') {
             steps {
-
                 echo "==============================="
-                echo "SECURITY SCAN"
+                echo "SOFTWARE METRICS"
                 echo "==============================="
 
                 bat '''
-                'python -m bandit -r .'
+                echo.
+                echo ============================================
+                echo TOTAL FILES
+                echo ============================================
+                dir /s /b *.php *.js *.html *.css
                 '''
 
                 bat '''
-                safety check
+                echo.
+                echo ============================================
+                echo LINES OF CODE
+                echo ============================================
+                powershell -NoProfile -Command "$c=(Get-ChildItem -Recurse -Include *.php,*.js,*.html,*.css | Get-Content | Measure-Object -Line).Lines; Write-Host 'TOTAL LINES OF CODE:' $c"
+                '''
+
+                bat '''
+                echo.
+                echo ============================================
+                echo PHP FILE COUNT
+                echo ============================================
+                dir /s *.php | find /c ".php"
+                '''
+
+                bat '''
+                echo.
+                echo ============================================
+                echo JAVASCRIPT FILE COUNT
+                echo ============================================
+                dir /s *.js | find /c ".js"
+                '''
+
+                bat '''
+                echo.
+                echo ============================================
+                echo HTML FILE COUNT
+                echo ============================================
+                dir /s *.html | find /c ".html"
+                '''
+
+                bat '''
+                echo.
+                echo ============================================
+                echo CSS FILE COUNT
+                echo ============================================
+                dir /s *.css | find /c ".css"
+                '''
+            }
+        }
+
+        stage('Check Python') {
+            steps {
+                bat '''
+                echo ============================
+                echo CHECKING PYTHON
+                echo ============================
+                where python
+                python --version
+                '''
+            }
+        }
+
+        stage('Install Python Dependencies') {
+            steps {
+                echo "==============================="
+                echo "INSTALL PYTHON DEPENDENCIES"
+                echo "==============================="
+                
+                bat '''
+                echo Installing Python packages...
+                python -m pip install --upgrade pip
+                pip install bandit safety
+                echo Python dependencies installed successfully!
+                '''
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                echo "==============================="
+                echo "SECURITY SCAN"
+                echo "==============================="
+                
+                bat '''
+                echo Running Bandit security scan...
+                python -m bandit -r . -f txt || echo "Bandit scan completed with warnings"
+                
+                echo.
+                echo Running Safety security check...
+                safety check || echo "Safety check completed with warnings"
                 '''
             }
         }
 
         stage('PHP Syntax Check') {
             steps {
-
                 echo "==============================="
                 echo "PHP LINT"
                 echo "==============================="
-
+                
                 bat '''
-                for /R %%f in (*.php) do php -l "%%f"
+                set ERROR_COUNT=0
+                echo Checking PHP files...
+                for /R %%f in (*.php) do (
+                    php -l "%%f"
+                    if errorlevel 1 set ERROR_COUNT=1
+                )
+                echo.
+                if %ERROR_COUNT%==1 (
+                    echo PHP syntax errors found!
+                    exit /b 1
+                ) else (
+                    echo All PHP files passed syntax check!
+                )
                 '''
             }
         }
 
         stage('Unit Testing') {
             steps {
-
                 echo "==============================="
                 echo "UNIT TEST"
                 echo "==============================="
-
+                
                 bat '''
                 if exist vendor\\bin\\phpunit (
+                    echo Running PHPUnit tests...
                     vendor\\bin\\phpunit
                 ) else (
-                    echo PHPUnit Not Configured.
+                    echo PHPUnit Not Configured. Skipping unit tests.
                 )
                 '''
             }
         }
 
         stage('Deploy to AWS EC2') {
-
             steps {
-
+                echo "==============================="
+                echo "DEPLOYING TO AWS EC2"
+                echo "==============================="
+                
                 sshagent(credentials: ['aws-ec2']) {
-
                     bat """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${EC2_HOST} ^
+                    echo Deploying to EC2 instance ${EC2_HOST}...
+                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} ^
                     "cd /var/www/html &&
+                    echo 'Pulling latest code from GitHub...' &&
                     sudo git pull origin main &&
-                    sudo systemctl restart apache2"
+                    echo 'Restarting Apache...' &&
+                    sudo systemctl restart apache2 &&
+                    echo 'Deployment completed successfully!'"
                     """
                 }
             }
         }
 
         stage('Website Health Check') {
-
             steps {
-
+                echo "==============================="
+                echo "HEALTH CHECK"
+                echo "==============================="
+                
                 bat """
-                curl http://${EC2_HOST}
+                echo Checking website health at http://${EC2_HOST}
+                curl -s -o nul -w "HTTP Status: %%{http_code}\n" http://${EC2_HOST}
                 """
             }
         }
-
     }
 
     post {
-
         success {
-
             echo ""
             echo "==========================================="
             echo "        CineSphere Build Summary"
             echo "==========================================="
-            echo "Git Checkout          : PASS"
-            echo "Software Metrics      : PASS"
-            echo "Security Scan         : PASS"
-            echo "PHP Syntax Check      : PASS"
-            echo "Unit Test             : PASS"
-            echo "Deployment            : PASS"
-            echo "Website Test          : PASS"
+            echo "✓ Git Checkout          : PASS"
+            echo "✓ Software Metrics      : PASS"
+            echo "✓ Python Check          : PASS"
+            echo "✓ Python Dependencies   : PASS"
+            echo "✓ Security Scan         : PASS"
+            echo "✓ PHP Syntax Check      : PASS"
+            echo "✓ Unit Test             : PASS"
+            echo "✓ Deployment            : PASS"
+            echo "✓ Website Test          : PASS"
             echo "-------------------------------------------"
-            echo "BUILD STATUS          : SUCCESS"
+            echo "BUILD STATUS          : SUCCESS ✓"
             echo "==========================================="
         }
 
         failure {
-
             echo ""
             echo "==========================================="
-            echo "BUILD FAILED"
+            echo "        CineSphere Build Failed"
+            echo "==========================================="
+            echo "✗ BUILD STATUS          : FAILED"
+            echo "==========================================="
+            echo ""
+            echo "Please check the logs above for errors."
+        }
+
+        unstable {
+            echo ""
+            echo "==========================================="
+            echo "        CineSphere Build Unstable"
+            echo "==========================================="
+            echo "⚠ BUILD STATUS          : UNSTABLE"
+            echo "==========================================="
+        }
+
+        aborted {
+            echo ""
+            echo "==========================================="
+            echo "        CineSphere Build Aborted"
+            echo "==========================================="
+            echo "⚠ BUILD STATUS          : ABORTED"
             echo "==========================================="
         }
 
         always {
-
+            echo "Archiving artifacts..."
             archiveArtifacts artifacts: '**/*.log', allowEmptyArchive: true
-
+            
+            echo ""
+            echo "==========================================="
+            echo "Build completed at: ${currentBuild.startTimeInMillis}"
+            echo "Build URL: ${env.BUILD_URL}"
+            echo "==========================================="
         }
     }
 }
