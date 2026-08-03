@@ -93,7 +93,7 @@ pipeline {
                 bat '''
                 @echo off
                 echo Running Lizard Code Complexity Analyzer...
-                python -m lizard backend/ frontend/ || true
+                python -m lizard backend/ frontend/ || echo [Notice] Check completed.
                 '''
             }
         }
@@ -118,7 +118,7 @@ pipeline {
             }
         }
 
-        stage('Advanced PHP Code Quality') {
+       stage('Advanced PHP Code Quality') {
             steps {
                 echo "==============================="
                 echo "PHPCPD, PHPCS, PHPStan, PhpMetrics"
@@ -142,19 +142,19 @@ pipeline {
                 
                 echo.
                 echo --- Running PHPCPD (Code Duplication) ---
-                php tools\\phpcpd.phar backend\\ || true
+                php tools\\phpcpd.phar backend\\ || echo [Notice] Check completed.
                 
                 echo.
                 echo --- Running PHPCS (Coding Standards PSR-12) ---
-                php tools\\phpcs.phar backend\\ || true
+                php tools\\phpcs.phar backend\\ || echo [Notice] Check completed.
                 
                 echo.
                 echo --- Running PHPStan (Static Code Analysis) ---
-                php tools\\phpstan.phar analyse backend\\ --level=1 || true
+                php tools\\phpstan.phar analyse backend\\ --level=1 || echo [Notice] Check completed.
                 
                 echo.
                 echo --- Running PhpMetrics (Maintainability Index) ---
-                php tools\\phpmetrics.phar --report-html=metrics backend\\ || true
+                php tools\\phpmetrics.phar --report-html=metrics backend\\ || echo [Notice] Check completed.
                 '''
             }
         }
@@ -251,9 +251,10 @@ pipeline {
                 bat """
                 @echo off
                 echo Running OWASP ZAP Baseline Scan against live server http://${EC2_HOST}...
-                docker run -t owasp/zap2docker-stable zap-baseline.py -t http://${EC2_HOST} || true
+                docker run -t owasp/zap2docker-stable zap-baseline.py -t http://${EC2_HOST} || echo [Notice] Check completed.
                 """
             }
+        }
         }
     }
 
