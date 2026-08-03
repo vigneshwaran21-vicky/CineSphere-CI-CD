@@ -78,16 +78,30 @@ pipeline {
                 @echo off
                 echo Installing Python packages...
                 python -m pip install --upgrade pip -q
-                pip install bandit safety -q
+                pip install bandit safety lizard -q
                 echo Python dependencies installed successfully!
                 '''
             }
         }
 
-        stage('Security Scan') {
+        stage('Cyclomatic Complexity (Lizard)') {
             steps {
                 echo "==============================="
-                echo "SECURITY SCAN"
+                echo "LIZARD METRICS"
+                echo "==============================="
+                
+                bat '''
+                @echo off
+                echo Running Lizard Code Complexity Analyzer...
+                python -m lizard backend/ frontend/ || true
+                '''
+            }
+        }
+
+        stage('Security Scan (SAST)') {
+            steps {
+                echo "==============================="
+                echo "STATIC SECURITY SCAN"
                 echo "==============================="
                 
                 bat '''
@@ -100,6 +114,47 @@ pipeline {
                 safety check >nul 2>&1 || (echo WARNING: Safety found issues & safety check)
                 
                 echo Security scan completed successfully!
+                '''
+            }
+        }
+
+        stage('Advanced PHP Code Quality') {
+            steps {
+                echo "==============================="
+                echo "PHPCPD, PHPCS, PHPStan, PhpMetrics"
+                echo "==============================="
+                
+                bat '''
+                @echo off
+                if not exist tools mkdir tools
+                
+                echo Downloading PHPCPD (Copy/Paste Detector)...
+                if not exist tools\\phpcpd.phar curl -sL https://phar.phpunit.de/phpcpd.phar -o tools\\phpcpd.phar
+                
+                echo Downloading PHP_CodeSniffer (PHPCS)...
+                if not exist tools\\phpcs.phar curl -sL https://github.com/squizlabs/PHP_CodeSniffer/releases/download/3.7.2/phpcs.phar -o tools\\phpcs.phar
+                
+                echo Downloading PHPStan (Static Analysis)...
+                if not exist tools\\phpstan.phar curl -sL https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar -o tools\\phpstan.phar
+                
+                echo Downloading PhpMetrics (Maintainability Index)...
+                if not exist tools\\phpmetrics.phar curl -sL https://github.com/phpmetrics/PhpMetrics/releases/latest/download/phpmetrics.phar -o tools\\phpmetrics.phar
+                
+                echo.
+                echo --- Running PHPCPD (Code Duplication) ---
+                php tools\\phpcpd.phar backend\\ || true
+                
+                echo.
+                echo --- Running PHPCS (Coding Standards PSR-12) ---
+                php tools\\phpcs.phar backend\\ || true
+                
+                echo.
+                echo --- Running PHPStan (Static Code Analysis) ---
+                php tools\\phpstan.phar analyse backend\\ --level=1 || true
+                
+                echo.
+                echo --- Running PhpMetrics (Maintainability Index) ---
+                php tools\\phpmetrics.phar --report-html=metrics backend\\ || true
                 '''
             }
         }
@@ -134,7 +189,7 @@ pipeline {
             }
         }
 
-                        stage('Unit Testing (PHPUnit + Xdebug)') {
+        stage('Unit Testing (PHPUnit + Xdebug)') {
             steps {
                 echo "==============================="
                 echo "PHPUNIT CODE COVERAGE"
@@ -186,6 +241,20 @@ pipeline {
                 """
             }
         }
+
+        stage('OWASP ZAP Dynamic Scan') {
+            steps {
+                echo "==============================="
+                echo "OWASP ZAP DAST"
+                echo "==============================="
+                
+                bat """
+                @echo off
+                echo Running OWASP ZAP Baseline Scan against live server http://${EC2_HOST}...
+                docker run -t owasp/zap2docker-stable zap-baseline.py -t http://${EC2_HOST} || true
+                """
+            }
+        }
     }
 
     post {
@@ -194,16 +263,6 @@ pipeline {
             echo "==========================================="
             echo "        CineSphere Build Summary"
             echo "==========================================="
-            echo "✓ Git Checkout          : PASS"
-            echo "✓ Software Metrics      : PASS"
-            echo "✓ Python Check          : PASS"
-            echo "✓ Python Dependencies   : PASS"
-            echo "✓ Security Scan         : PASS"
-            echo "✓ PHP Syntax Check      : PASS"
-            echo "✓ Unit Test             : PASS"
-            echo "✓ Deployment            : PASS"
-            echo "✓ Website Test          : PASS"
-            echo "-------------------------------------------"
             echo "BUILD STATUS          : SUCCESS ✓"
             echo "==========================================="
         }
@@ -219,31 +278,12 @@ pipeline {
             echo "Please check the logs above for errors."
         }
 
-        unstable {
-            echo ""
-            echo "==========================================="
-            echo "        CineSphere Build Unstable"
-            echo "==========================================="
-            echo "⚠ BUILD STATUS          : UNSTABLE"
-            echo "==========================================="
-        }
-
-        aborted {
-            echo ""
-            echo "==========================================="
-            echo "        CineSphere Build Aborted"
-            echo "==========================================="
-            echo "⚠ BUILD STATUS          : ABORTED"
-            echo "==========================================="
-        }
-
         always {
             echo "Archiving artifacts..."
             archiveArtifacts artifacts: '**/*.log', allowEmptyArchive: true
             
             echo ""
             echo "==========================================="
-            echo "Build completed at: ${currentBuild.startTimeInMillis}"
             echo "Build URL: ${env.BUILD_URL}"
             echo "==========================================="
         }
